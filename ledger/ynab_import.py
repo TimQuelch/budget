@@ -22,7 +22,7 @@ def create_accounts(d):
     # bulk_create does not work for child models
     for n in account_names:
         try:
-            models.Account(name=n).save()
+            models.Account(name=n, is_account=True).save()
         except:
             print(n)
             raise

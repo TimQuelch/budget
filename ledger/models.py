@@ -5,31 +5,43 @@ from django.db import models
 
 class Payee(models.Model):
     name = models.CharField(max_length=50, unique=True)
+    is_account = models.BooleanField(default=False, editable=False)
 
     def __str__(self):
         return str(self.name)
 
-
-class Account(Payee):
-    def __str__(self):
-        return str(self.name)
-
-    def balance(self, exclude_future=True):
+    def balance(self, before=date.today()):
         def transaction_sum(qs):
             return sum(v["amount"] for v in qs.values("amount"))
 
-        incoming = self.incoming_transactions
-        outgoing = self.outgoing_transactions
-
-        if exclude_future:
-            incoming = incoming.filter(date__lte=date.today())
-            outgoing = outgoing.filter(date__lte=date.today())
+        incoming = self.incoming_transactions.filter(date__lte=before)
+        outgoing = self.outgoing_transactions.filter(date__lte=before)
 
         return transaction_sum(incoming) - transaction_sum(outgoing)
 
 
+class Account(Payee):
+    def clean(self):
+        super().clean()
+        self.is_account = True
+
+    def __str__(self):
+        return str(self.name)
+
+
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
+
+    def balance(self, before=date.today()):
+        budget_allocations = sum(
+            b["allocated"]
+            for b in self.budgetentry_set.filter(month__lte=before).values("allocated")
+        )
+        transactions = self.transaction_set.filter(date__lte=before).select_related("src", "dst")
+        transaction_sum = sum(
+            ((2 * t.is_outgoing() - 1) * t.amount) for t in transactions
+        )
+        return budget_allocations - transaction_sum
 
     def __str__(self):
         return str(self.name)
@@ -69,8 +81,17 @@ class Transaction(models.Model):
     objects = models.Manager()
     transfers = TransferManager()
 
+    @property
     def is_transfer(self):
-        return hasattr(self.src, "account") and hasattr(self.dst, "account")
+        return self.src.is_account and self.dst.is_account
+
+    @property
+    def is_outgoing(self):
+        return self.src.is_account and not self.dst.is_account
+
+    @property
+    def is_incoming(self):
+        return not self.src.is_account and self.dst.is_account
 
     def clean(self):
         # Remove category if it is a transfer
