@@ -71,7 +71,7 @@ class Transaction(models.Model):
     transfers = TransferManager()
 
     def is_transfer(self):
-        return hasattr(self, "account") and hasattr(self, "account")
+        return hasattr(self.src, "account") and hasattr(self.dst, "account")
 
     def clean(self):
         # Remove category if it is a transfer
