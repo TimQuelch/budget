@@ -29,6 +29,13 @@ class Account(Payee):
         return transaction_sum(incoming) - transaction_sum(outgoing)
 
 
+class Category(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return str(self.name)
+
+
 class TransferManager(models.Manager):
     def get_queryset(self):
         return (
@@ -51,6 +58,11 @@ class Transaction(models.Model):
         related_name="incoming_transactions",
         null=True,
     )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+    )
     date = models.DateField()
     amount = models.DecimalField(decimal_places=2, max_digits=16)
     memo = models.CharField(max_length=100)
@@ -58,14 +70,18 @@ class Transaction(models.Model):
     objects = models.Manager()
     transfers = TransferManager()
 
+    def is_transfer(self):
+        return hasattr(self, "account") and hasattr(self, "account")
+
+    def clean(self):
+        # Remove category if it is a transfer
+        if self.is_transfer():
+            self.category = None
+
     def __str__(self):
         return "{}: ${} from '{}' to '{}' ({})".format(
             self.date, self.amount, self.src, self.dst, self.memo
         )
-
-
-class Category(models.Model):
-    name = models.CharField(max_length=50, unique=True)
 
 
 class BudgetEntry(models.Model):
@@ -77,10 +93,18 @@ class BudgetEntry(models.Model):
     allocated = models.DecimalField(decimal_places=2, max_digits=16)
 
     def clean(self):
+        # We don't care about the day of the entry
         if self.month.day != 1:
             self.month = self.month.replace(day=1)
 
+    def __str__(self):
+        return "{} {} Allocated ${}".format(
+            self.month.strftime("%b, %Y"), self.category, self.allocated
+        )
+
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["month", "category"], name="unique_budget_entry")
+            models.UniqueConstraint(
+                fields=["month", "category"], name="unique_budget_entry"
+            )
         ]

@@ -32,6 +32,7 @@ def create_transactions(d):
     # Doesn't handle double counting of inter-account transfers
 
     payees = models.Payee.objects.in_bulk(field_name="name")
+    categories = models.Category.objects.in_bulk(field_name="name")
     d["PayeeStripped"] = d.Payee.str.replace("Transfer : ", "", regex=False)
 
     def create_transaction(it):
@@ -49,9 +50,16 @@ def create_transactions(d):
 
         src = payees[srcname]
         dst = payees[dstname]
+        categories["Ready to Assign"] = categories["Inflow"]
+        category = categories[t.Category] if t.Category else None
 
         return models.Transaction(
-            src=src, dst=dst, date=t.Date, amount=amount, memo=t.Memo
+            src=src,
+            dst=dst,
+            date=t.Date,
+            amount=amount,
+            memo=t.Memo,
+            category=category,
         )
 
     models.Transaction.objects.bulk_create(map(create_transaction, d.iterrows()))
@@ -89,12 +97,47 @@ def remove_dupes():
     )
     assert ndupes == 0
 
-def import_csv(filename, clear_table=False):
-    d = pd.read_csv(
-        filename, parse_dates=[2], infer_datetime_format=True, converters={"Memo": str}
+
+def create_categories(b):
+    names = b.Category.unique()
+    models.Category.objects.bulk_create([models.Category(name=n) for n in names])
+    models.Category.objects.create(name="Inflow").save()
+
+
+def create_budget_entries(b):
+    categories = models.Category.objects.in_bulk(field_name="name")
+
+    def create_entry(ib):
+        b = ib[1]
+        bobj = models.BudgetEntry(
+            month=b.Month, category=categories[b.Category], allocated=b.Budgeted
+        )
+        bobj.full_clean()
+        return bobj
+
+    bs = list(map(create_entry, b.iterrows()))
+    models.BudgetEntry.objects.bulk_create(map(create_entry, b.iterrows()))
+
+
+def import_csv(register_filename, budget_filename, clear_table=False):
+    r = pd.read_csv(
+        register_filename,
+        parse_dates=[2],
+        infer_datetime_format=True,
+        converters={"Memo": str, "Category": str},
     )
-    d.Outflow = d.Outflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
-    d.Inflow = d.Inflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
+    r.Outflow = r.Outflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
+    r.Inflow = r.Inflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
+
+    b = pd.read_csv(
+        budget_filename,
+        parse_dates=[0],
+        infer_datetime_format=True,
+        converters={"Category": str},
+    )
+    b.Budgeted = b.Budgeted.str.replace("$", "", regex=False).apply(
+        lambda x: Decimal(x)
+    )
 
     # Wrap all in transaction?
 
@@ -102,9 +145,16 @@ def import_csv(filename, clear_table=False):
         models.Account.objects.all().delete()
         models.Payee.objects.all().delete()
         models.Transaction.objects.all().delete()
+        models.Category.objects.all().delete()
+        models.BudgetEntry.objects.all().delete()
 
-    create_payees(d)
-    create_accounts(d)
-    create_transactions(d)
+    create_payees(r)
+    create_accounts(r)
 
+    create_categories(b)
+    create_budget_entries(b)
+
+    create_transactions(r)
     remove_dupes()
+
+    return r, b
