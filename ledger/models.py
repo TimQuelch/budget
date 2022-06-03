@@ -62,3 +62,25 @@ class Transaction(models.Model):
         return "{}: ${} from '{}' to '{}' ({})".format(
             self.date, self.amount, self.src, self.dst, self.memo
         )
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+
+class BudgetEntry(models.Model):
+    month = models.DateField()
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+    )
+    allocated = models.DecimalField(decimal_places=2, max_digits=16)
+
+    def clean(self):
+        if self.month.day != 1:
+            self.month = self.month.replace(day=1)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["month", "category"], name="unique_budget_entry")
+        ]
