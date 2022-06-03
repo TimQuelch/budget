@@ -52,7 +52,7 @@ class TransferManager(models.Manager):
         return (
             super()
             .get_queryset()
-            .filter(src__account__isnull=False, dst__account__isnull=False)
+            .filter(src__is_account=True, dst__is_account=True)
         )
 
 
