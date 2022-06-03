@@ -19,6 +19,9 @@ def create_payees(d):
 def create_accounts(d):
     account_names = d.Account.unique()
 
+    # Right now in YNAB accounts and Payees can have the same names. This will throw an error below
+    # (for now, as payee/account name is unique)
+
     # bulk_create does not work for child models
     for n in account_names:
         try:
