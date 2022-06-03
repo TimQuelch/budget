@@ -1,3 +1,5 @@
+from django.db.models import Count
+
 import pandas as pd
 import re
 from decimal import *
@@ -9,7 +11,9 @@ def create_payees(d):
     payee_names = d.Payee.unique()
     transfer_re = re.compile(r"Transfer : .*")
     non_transfer_payees = filter(lambda n: not transfer_re.match(n), payee_names)
-    models.Payee.objects.bulk_create([models.Payee(name=n) for n in non_transfer_payees])
+    models.Payee.objects.bulk_create(
+        [models.Payee(name=n) for n in non_transfer_payees]
+    )
 
 
 def create_accounts(d):
@@ -46,16 +50,51 @@ def create_transactions(d):
         src = payees[srcname]
         dst = payees[dstname]
 
-        return models.Transaction(src=src, dst=dst, date=t.Date, amount=amount, memo=t.Memo)
+        return models.Transaction(
+            src=src, dst=dst, date=t.Date, amount=amount, memo=t.Memo
+        )
 
     models.Transaction.objects.bulk_create(map(create_transaction, d.iterrows()))
 
 
-def import_csv(filename, clear_table=False):
-    d = pd.read_csv(filename, parse_dates=[2], infer_datetime_format=True, converters={"Memo": str})
-    d.Outflow = d.Outflow.str.replace('$', '', regex=False).apply(lambda x: Decimal(x))
-    d.Inflow = d.Inflow.str.replace('$', '', regex=False).apply(lambda x: Decimal(x))
+def remove_dupes():
+    # Transfers are between accounts. They are double counted in import, so we need to delete one
+    dupes = (
+        models.Transaction.transfers.values("src", "dst", "amount", "date")
+        .annotate(Count("id"))
+        .order_by()
+        .filter(id__count__gt=1)
+    )
 
+    for vs in dupes:
+        # If there are identical transfers on the same day we'll need to change this
+        assert vs["id__count"] == 2
+
+        # Find the pair of transactions
+        pair = models.Transaction.objects.filter(
+            amount=vs["amount"], date=vs["date"], src_id=vs["src"], dst_id=vs["dst"]
+        )
+
+        assert len(pair) == 2
+
+        # Delete the 2nd transaction
+        pair[1].delete()
+
+    # Verify there are none remaining
+    ndupes = len(
+        models.Transaction.transfers.values("src", "dst", "amount", "date")
+        .annotate(Count("id"))
+        .order_by()
+        .filter(id__count__gt=1)
+    )
+    assert ndupes == 0
+
+def import_csv(filename, clear_table=False):
+    d = pd.read_csv(
+        filename, parse_dates=[2], infer_datetime_format=True, converters={"Memo": str}
+    )
+    d.Outflow = d.Outflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
+    d.Inflow = d.Inflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
 
     # Wrap all in transaction?
 
@@ -68,4 +107,4 @@ def import_csv(filename, clear_table=False):
     create_accounts(d)
     create_transactions(d)
 
-    return d
+    remove_dupes()
