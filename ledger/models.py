@@ -1,7 +1,6 @@
-from django.db import models
-
 from datetime import date
-from decimal import *
+
+from django.db import models
 
 
 class Payee(models.Model):
