@@ -2,3 +2,4 @@ __pycache__
 .venv
 mydata
 db.sqlite3
+build
