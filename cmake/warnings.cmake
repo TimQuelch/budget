@@ -1,0 +1,15 @@
+set(warnings
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wshadow
+    -Wnon-virtual-dtor
+    -Wold-style-cast
+    -Wunused
+    -Woverloaded-virtual
+    -Wnull-dereference
+    -Wdouble-promotion
+    -Wconversion
+    -Wsign-conversion
+    -Wformat=2
+    )
