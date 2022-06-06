@@ -7,13 +7,13 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ledger', '0004_category_budgetentry_budgetentry_unique_budget_entry'),
+        ('backend', '0004_category_budgetentry_budgetentry_unique_budget_entry'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='transaction',
             name='category',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='ledger.category'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='backend.category'),
         ),
     ]

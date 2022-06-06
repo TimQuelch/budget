@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ledger', '0005_transaction_category'),
+        ('backend', '0005_transaction_category'),
     ]
 
     operations = [

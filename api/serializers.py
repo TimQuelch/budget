@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ledger.models import Payee
+from backend.models import Payee
 
 
 class PayeeSerializer(serializers.HyperlinkedModelSerializer):

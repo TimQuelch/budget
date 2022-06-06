@@ -22,9 +22,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Account',
             fields=[
-                ('payee_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='ledger.payee')),
+                ('payee_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='backend.payee')),
             ],
-            bases=('ledger.payee',),
+            bases=('backend.payee',),
         ),
         migrations.CreateModel(
             name='Transaction',
@@ -33,8 +33,8 @@ class Migration(migrations.Migration):
                 ('date', models.DateField()),
                 ('amount', models.DecimalField(decimal_places=2, max_digits=16)),
                 ('memo', models.CharField(max_length=100)),
-                ('dst', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='incoming_transactions', to='ledger.payee')),
-                ('src', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='outgoing_transactions', to='ledger.payee')),
+                ('dst', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='incoming_transactions', to='backend.payee')),
+                ('src', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='outgoing_transactions', to='backend.payee')),
             ],
         ),
     ]

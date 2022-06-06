@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ledger', '0003_alter_transaction_managers'),
+        ('backend', '0003_alter_transaction_managers'),
     ]
 
     operations = [
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('month', models.DateField()),
                 ('allocated', models.DecimalField(decimal_places=2, max_digits=16)),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ledger.category')),
+                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='backend.category')),
             ],
         ),
         migrations.AddConstraint(
