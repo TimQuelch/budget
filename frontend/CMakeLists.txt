@@ -29,7 +29,13 @@ FetchContent_Declare(cpr
   GIT_SHALLOW ON
   )
 
-FetchContent_MakeAvailable(ftxui json cpr)
+FetchContent_Declare(fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_TAG 8.1.1
+  GIT_SHALLOW ON
+  )
+
+FetchContent_MakeAvailable(ftxui json cpr fmt)
 
 # TUI executable
 add_executable(budget-tui tui/main.cpp)
@@ -42,4 +48,5 @@ target_link_libraries(budget-tui
   ftxui::component
   cpr::cpr
   nlohmann_json::nlohmann_json
+  fmt::fmt
   )
