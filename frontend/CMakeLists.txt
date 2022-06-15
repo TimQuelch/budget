@@ -36,7 +36,15 @@ FetchContent_Declare(fmt
   GIT_SHALLOW ON
   )
 
-FetchContent_MakeAvailable(ftxui json cpr fmt)
+FetchContent_Declare(spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog
+  GIT_TAG v1.10.0
+  GIT_SHALLOW ON
+  )
+
+set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "Use my version of fmt")
+
+FetchContent_MakeAvailable(ftxui json cpr fmt spdlog)
 
 # TUI executable
 add_executable(budget-tui tui/main.cpp)
@@ -50,4 +58,5 @@ target_link_libraries(budget-tui
   cpr::cpr
   nlohmann_json::nlohmann_json
   fmt::fmt
+  spdlog::spdlog
   )
