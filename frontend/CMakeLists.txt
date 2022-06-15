@@ -20,6 +20,7 @@ FetchContent_Declare(json
   GIT_SHALLOW ON
   )
 
+set(JSON_ImplicitConversions OFF CACHE BOOL "Disable implicit conversions")
 set(JSON_BuildTests OFF CACHE BOOL "Don't build tests")
 set(JSON_SystemInclude ON CACHE BOOL "Treat headers as system to remove noisy diagnostics")
 
