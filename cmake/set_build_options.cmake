@@ -12,7 +12,6 @@ function(budget_set_build_options target)
   target_compile_options(${target} PRIVATE ${warnings})
 
   if(CLANG_TIDY_EXE)
-    # set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-warnings-as-errors=*")
-    set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-warnings-as-errors=*")
   endif()
 endfunction()
