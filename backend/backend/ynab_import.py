@@ -107,13 +107,24 @@ def create_categories(b):
     models.Category.objects.create(name="Inflow").save()
 
 
+def create_months(b):
+    months = b.Month.unique()
+    # Some bananas conversions required here between numpy, pandas, and python datetime
+    models.BudgetMonth.objects.bulk_create(
+        [models.BudgetMonth(month=pd.to_datetime(m).date()) for m in months]
+    )
+
+
 def create_budget_entries(b):
     categories = models.Category.objects.in_bulk(field_name="name")
+    months = models.BudgetMonth.objects.in_bulk(field_name="month")
 
     def create_entry(ib):
         b = ib[1]
         bobj = models.BudgetEntry(
-            month=b.Month, category=categories[b.Category], allocated=b.Budgeted
+            month=months[pd.to_datetime(b.Month).date()],
+            category=categories[b.Category],
+            allocated=b.Budgeted,
         )
         bobj.full_clean()
         return bobj
@@ -149,12 +160,14 @@ def import_csv(register_filename, budget_filename, clear_table=False):
         models.Payee.objects.all().delete()
         models.Transaction.objects.all().delete()
         models.Category.objects.all().delete()
+        models.BudgetMonth.objects.all().delete()
         models.BudgetEntry.objects.all().delete()
 
     create_payees(r)
     create_accounts(r)
 
     create_categories(b)
+    create_months(b)
     create_budget_entries(b)
 
     create_transactions(r)

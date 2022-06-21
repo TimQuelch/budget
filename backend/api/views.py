@@ -1,8 +1,6 @@
-from django.shortcuts import render
 from rest_framework import viewsets
 
-from backend.models import Payee, Account
-
+from backend.models import Payee, Account, BudgetMonth
 from . import serializers
 
 
@@ -14,3 +12,9 @@ class PayeeViewSet(viewsets.ModelViewSet):
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = serializers.AccountSerializer
+
+
+class BudgetMonthViewSet(viewsets.ModelViewSet):
+    queryset = BudgetMonth.objects.all()
+    serializer_class = serializers.BudgetMonthSerializer
+    lookup_field = "month"

@@ -37,7 +37,9 @@ class Category(models.Model):
             b["allocated"]
             for b in self.budgetentry_set.filter(month__lte=before).values("allocated")
         )
-        transactions = self.transaction_set.filter(date__lte=before).select_related("src", "dst")
+        transactions = self.transaction_set.filter(date__lte=before).select_related(
+            "src", "dst"
+        )
         transaction_sum = sum(
             ((2 * t.is_outgoing() - 1) * t.amount) for t in transactions
         )
@@ -49,11 +51,7 @@ class Category(models.Model):
 
 class TransferManager(models.Manager):
     def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .filter(src__is_account=True, dst__is_account=True)
-        )
+        return super().get_queryset().filter(src__is_account=True, dst__is_account=True)
 
 
 class Transaction(models.Model):
@@ -99,28 +97,36 @@ class Transaction(models.Model):
             self.category = None
 
     def __str__(self):
-        return "{}: ${} from '{}' to '{}' ({})".format(
-            self.date, self.amount, self.src, self.dst, self.memo
-        )
+        return f"{self.date}: ${self.amount} from '{self.src}' to '{self.dst}' ({self.memo})"
 
 
-class BudgetEntry(models.Model):
-    month = models.DateField()
-    category = models.ForeignKey(
-        Category,
-        on_delete=models.CASCADE,
-    )
-    allocated = models.DecimalField(decimal_places=2, max_digits=16)
+class BudgetMonth(models.Model):
+    month = models.DateField(unique=True)
+
+    def __str__(self):
+        return self.month.strftime("%b %Y")
 
     def clean(self):
         # We don't care about the day of the entry
         if self.month.day != 1:
             self.month = self.month.replace(day=1)
 
+
+class BudgetEntry(models.Model):
+    month = models.ForeignKey(
+        BudgetMonth,
+        on_delete=models.CASCADE,
+        related_name="entries",
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name="entries",
+    )
+    allocated = models.DecimalField(decimal_places=2, max_digits=16)
+
     def __str__(self):
-        return "{} {} Allocated ${}".format(
-            self.month.strftime("%b, %Y"), self.category, self.allocated
-        )
+        return f"{self.month} {self.category} Allocated ${self.allocated}"
 
     class Meta:
         constraints = [

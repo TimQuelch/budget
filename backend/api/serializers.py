@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from backend.models import Payee, Account
+from backend.models import Payee, Account, BudgetMonth, BudgetEntry
 
 
 class AccountSerializer(serializers.HyperlinkedModelSerializer):
@@ -15,3 +15,20 @@ class PayeeSerializer(serializers.HyperlinkedModelSerializer):
         model = Payee
         fields = ["url", "name", "is_account", "balance"]
         read_only_fields = ["balance"]
+
+
+class BudgetEntrySerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(read_only=True, slug_field="name")
+    class Meta:
+        model = BudgetEntry
+        fields = ["category", "allocated"]
+
+
+class BudgetMonthSerializer(serializers.HyperlinkedModelSerializer):
+    entries = BudgetEntrySerializer(many=True)
+    class Meta:
+        model = BudgetMonth
+        fields = ["url", "month", "entries"]
+        extra_kwargs = {
+            "url": {"lookup_field": "month"}
+        }
