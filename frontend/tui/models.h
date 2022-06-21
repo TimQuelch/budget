@@ -5,7 +5,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-
 namespace budget {
 
     class Payee {
@@ -18,7 +17,8 @@ namespace budget {
 
     static_assert(std::is_default_constructible<Payee>::value);
 
-    struct Account : public Payee {
+    class Account : public Payee {
+    public:
         double balance = 0.0;
     };
 

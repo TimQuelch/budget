@@ -47,7 +47,7 @@ set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "Use my version of fmt")
 FetchContent_MakeAvailable(ftxui json cpr fmt spdlog)
 
 # TUI executable
-add_executable(budget-tui tui/main.cpp tui/interface.cpp tui/models.cpp)
+add_executable(budget-tui tui/main.cpp tui/interface.cpp tui/models.cpp tui/connection.cpp)
 budget_set_build_options(budget-tui)
 target_include_directories(budget-tui PRIVATE tui)
 target_link_libraries(budget-tui
