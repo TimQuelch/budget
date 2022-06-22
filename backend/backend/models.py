@@ -1,6 +1,20 @@
-from datetime import date
+from datetime import date, timedelta
+import calendar
 
 from django.db import models
+
+
+def previous_month(d):
+    first_of_month = d.replace(day=1)
+    last_of_previous_month = first_of_month - timedelta(days=1)
+    first_of_previous_month = last_of_previous_month.replace(day=1)
+    return first_of_previous_month
+
+
+def next_month(d):
+    last_of_month = d.replace(day=calendar.monthrange(d.year, d.month)[1])
+    first_of_next_month = last_of_month + timedelta(days=1)
+    return first_of_next_month
 
 
 class Payee(models.Model):
@@ -31,19 +45,6 @@ class Account(Payee):
 
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
-
-    def balance(self, before=date.today()):
-        budget_allocations = sum(
-            b["allocated"]
-            for b in self.budgetentry_set.filter(month__lte=before).values("allocated")
-        )
-        transactions = self.transaction_set.filter(date__lte=before).select_related(
-            "src", "dst"
-        )
-        transaction_sum = sum(
-            ((2 * t.is_outgoing() - 1) * t.amount) for t in transactions
-        )
-        return budget_allocations - transaction_sum
 
     def __str__(self):
         return str(self.name)
@@ -99,6 +100,9 @@ class Transaction(models.Model):
     def __str__(self):
         return f"{self.date}: ${self.amount} from '{self.src}' to '{self.dst}' ({self.memo})"
 
+    class Meta:
+        indexes = [models.Index(fields=("category", "date"), name="transaction_category_date")]
+
 
 class BudgetMonth(models.Model):
     month = models.DateField(unique=True)
@@ -124,6 +128,58 @@ class BudgetEntry(models.Model):
         related_name="entries",
     )
     allocated = models.DecimalField(decimal_places=2, max_digits=16)
+    balance = models.DecimalField(decimal_places=2, max_digits=16, editable=False, default=0)
+
+    def __clamp_date_to_month(self, before):
+        month = self.month.month
+        end_of_month = date(
+            month.year, month.month, calendar.monthrange(month.year, month.month)[1]
+        )
+        start_of_month = date(month.year, month.month, 1)
+        return max(min(before, end_of_month), start_of_month)
+
+    def update_balance(self, before=date.today(), update_future=True):
+        before = self.__clamp_date_to_month(before)
+
+        try:
+            previous_entry = BudgetEntry.objects.get(
+                category=self.category, month__month=previous_month(before)
+            )
+            opening_balance = previous_entry.balance
+        except BudgetEntry.DoesNotExist:
+            start_of_month = self.month.month
+            transactions = self.category.transaction_set.filter(
+                date__lt=start_of_month,
+            ).select_related("src", "dst")
+            opening_balance = sum(
+                ((2 * t.is_outgoing - 1) * t.amount) for t in transactions
+            )
+
+        new_balance = opening_balance + self.allocated - self.activity()
+        if new_balance != self.balance:
+            self.balance = new_balance
+            self.save()
+
+        if update_future:
+            try:
+                next_entry = BudgetEntry.objects.get(
+                    category=self.category, month__month=next_month(before)
+                )
+                next_entry.update_balance()
+            except BudgetEntry.DoesNotExist:
+                pass
+
+    def activity(self, before=date.today()):
+        before = self.__clamp_date_to_month(before)
+        start_of_month = self.month.month
+        transactions = self.category.transaction_set.filter(
+            date__gte=start_of_month,
+            date__lte=before,
+        ).select_related("src", "dst")
+        transaction_sum = sum(
+            ((2 * t.is_outgoing - 1) * t.amount) for t in transactions
+        )
+        return transaction_sum
 
     def __str__(self):
         return f"{self.month} {self.category} Allocated ${self.allocated}"

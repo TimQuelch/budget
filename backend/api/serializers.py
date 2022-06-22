@@ -24,8 +24,15 @@ class BudgetEntrySerializer(serializers.ModelSerializer):
         fields = ["category", "allocated"]
 
 
+class BudgetEntryDetailSerializer(BudgetEntrySerializer):
+    class Meta:
+        model = BudgetEntry
+        fields = ["category", "allocated", "balance", "activity"]
+
+
 class BudgetMonthSerializer(serializers.HyperlinkedModelSerializer):
-    entries = BudgetEntrySerializer(many=True)
+    entries = BudgetEntryDetailSerializer(many=True)
+
     class Meta:
         model = BudgetMonth
         fields = ["url", "month", "entries"]

@@ -5,6 +5,7 @@ import re
 from decimal import *
 
 from . import models
+from .util import update_all_balances
 
 
 def create_payees(d):
@@ -172,5 +173,7 @@ def import_csv(register_filename, budget_filename, clear_table=False):
 
     create_transactions(r)
     remove_dupes()
+
+    update_all_balances()
 
     return r, b
