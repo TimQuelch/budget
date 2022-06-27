@@ -19,19 +19,23 @@ class PayeeSerializer(serializers.HyperlinkedModelSerializer):
 
 class BudgetEntrySerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(read_only=True, slug_field="name")
-    class Meta:
-        model = BudgetEntry
-        fields = ["category", "allocated"]
 
-
-class BudgetEntryDetailSerializer(BudgetEntrySerializer):
     class Meta:
         model = BudgetEntry
         fields = ["category", "allocated", "balance", "activity"]
 
 
 class BudgetMonthSerializer(serializers.HyperlinkedModelSerializer):
-    entries = BudgetEntryDetailSerializer(many=True)
+    class Meta:
+        model = BudgetMonth
+        fields = ["url", "month"]
+        extra_kwargs = {
+            "url": {"lookup_field": "month"}
+        }
+
+
+class BudgetMonthDetailSerializer(BudgetMonthSerializer):
+    entries = BudgetEntrySerializer(many=True)
 
     class Meta:
         model = BudgetMonth

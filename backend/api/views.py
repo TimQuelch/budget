@@ -16,5 +16,10 @@ class AccountViewSet(viewsets.ModelViewSet):
 
 class BudgetMonthViewSet(viewsets.ModelViewSet):
     queryset = BudgetMonth.objects.all()
-    serializer_class = serializers.BudgetMonthSerializer
     lookup_field = "month"
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.BudgetMonthSerializer
+
+        return serializers.BudgetMonthDetailSerializer
