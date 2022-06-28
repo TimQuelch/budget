@@ -22,7 +22,7 @@ namespace {
         return j;
     }
 
-    void check_url_and_throw(std::string_view url) {
+    void check_valid_url_or_throw(std::string_view url) {
         if (!url.starts_with(budget::endpoint)) {
             throw std::invalid_argument("Bad url");
         }
@@ -40,7 +40,7 @@ namespace budget {
 
     template <typename T>
     void refresh_object(T& o) {
-        check_url_and_throw(o.url);
+        check_valid_url_or_throw(o.url);
         get_json(o.url).get_to(o);
     }
 
