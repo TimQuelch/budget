@@ -2,7 +2,6 @@ from django.db.models import Count
 
 import pandas as pd
 import re
-from decimal import *
 
 from . import models
 from .util import update_all_balances
@@ -141,8 +140,8 @@ def import_csv(register_filename, budget_filename, clear_table=False):
         infer_datetime_format=True,
         converters={"Memo": str, "Category": str},
     )
-    r.Outflow = r.Outflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
-    r.Inflow = r.Inflow.str.replace("$", "", regex=False).apply(lambda x: Decimal(x))
+    r.Outflow = r.Outflow.str.replace("$", "", regex=False).apply(lambda x: float(x))
+    r.Inflow = r.Inflow.str.replace("$", "", regex=False).apply(lambda x: float(x))
 
     b = pd.read_csv(
         budget_filename,
@@ -151,7 +150,7 @@ def import_csv(register_filename, budget_filename, clear_table=False):
         converters={"Category": str},
     )
     b.Budgeted = b.Budgeted.str.replace("$", "", regex=False).apply(
-        lambda x: Decimal(x)
+        lambda x: float(x)
     )
 
     # Wrap all in transaction?

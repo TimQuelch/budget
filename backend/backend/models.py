@@ -31,7 +31,7 @@ class Payee(models.Model):
         incoming = self.incoming_transactions.filter(date__lte=before)
         outgoing = self.outgoing_transactions.filter(date__lte=before)
 
-        return transaction_sum(incoming) - transaction_sum(outgoing)
+        return round(transaction_sum(incoming) - transaction_sum(outgoing), 2)
 
 
 class Account(Payee):
@@ -74,7 +74,7 @@ class Transaction(models.Model):
         null=True,
     )
     date = models.DateField()
-    amount = models.DecimalField(decimal_places=2, max_digits=16)
+    amount = models.FloatField()
     memo = models.CharField(max_length=100)
 
     objects = models.Manager()
@@ -101,7 +101,9 @@ class Transaction(models.Model):
         return f"{self.date}: ${self.amount} from '{self.src}' to '{self.dst}' ({self.memo})"
 
     class Meta:
-        indexes = [models.Index(fields=("category", "date"), name="transaction_category_date")]
+        indexes = [
+            models.Index(fields=("category", "date"), name="transaction_category_date")
+        ]
 
 
 class BudgetMonth(models.Model):
@@ -127,8 +129,8 @@ class BudgetEntry(models.Model):
         on_delete=models.CASCADE,
         related_name="entries",
     )
-    allocated = models.DecimalField(decimal_places=2, max_digits=16)
-    balance = models.DecimalField(decimal_places=2, max_digits=16, editable=False, default=0)
+    allocated = models.FloatField()
+    balance = models.FloatField(editable=False, default=0)
 
     def __clamp_date_to_month(self, before):
         month = self.month.month
@@ -155,7 +157,7 @@ class BudgetEntry(models.Model):
                 ((2 * t.is_outgoing - 1) * t.amount) for t in transactions
             )
 
-        new_balance = opening_balance + self.allocated - self.activity()
+        new_balance = round(opening_balance + self.allocated - self.activity(), 2)
         if new_balance != self.balance:
             self.balance = new_balance
             self.save()
@@ -179,7 +181,7 @@ class BudgetEntry(models.Model):
         transaction_sum = sum(
             ((2 * t.is_outgoing - 1) * t.amount) for t in transactions
         )
-        return transaction_sum
+        return round(transaction_sum, 2)
 
     def __str__(self):
         return f"{self.month} {self.category} Allocated ${self.allocated}"
