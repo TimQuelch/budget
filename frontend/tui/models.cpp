@@ -27,6 +27,10 @@ namespace budget {
         j.at("balance").get_to(a.balance);
     }
 
+    std::strong_ordering operator<=>(BudgetMonth const& a, BudgetMonth const& b) {
+        return a.month <=> b.month;
+    }
+
     // void to_json(nlohmann::json& j, BudgetMonth const& m) {
     //     j = nlohmann::json{{"name", m.name}, {"balance", m.balance}};
     // }

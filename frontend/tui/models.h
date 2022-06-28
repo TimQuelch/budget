@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <type_traits>
+#include <compare>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -41,6 +42,7 @@ namespace budget {
 
     static_assert(std::is_default_constructible<BudgetMonth>::value);
 
+    std::strong_ordering operator<=>(BudgetMonth const& a, BudgetMonth const& b);
     void to_json(nlohmann::json& j, BudgetMonth const& m);
     void from_json(nlohmann::json const& j, BudgetMonth& m);
 

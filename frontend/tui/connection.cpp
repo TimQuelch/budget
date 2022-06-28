@@ -35,7 +35,9 @@ namespace budget {
     }
 
     [[nodiscard]] std::vector<BudgetMonth> get_budget_months() {
-        return get_json(std::string{endpoint} + "budget/").get<std::vector<BudgetMonth>>();
+        auto vec = get_json(std::string{endpoint} + "budget/").get<std::vector<BudgetMonth>>();
+        std::sort(vec.begin(), vec.end(), std::greater<>());
+        return vec;
     }
 
     template <typename T>
