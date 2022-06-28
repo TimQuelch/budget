@@ -44,6 +44,7 @@ namespace budget {
         get_json(o.url).get_to(o);
     }
 
+    // Manually instantiate template for types which I actually want
     template void refresh_object<Account>(Account&);
     template void refresh_object<BudgetMonth>(BudgetMonth&);
 
