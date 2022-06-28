@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <type_traits>
 
@@ -26,5 +27,23 @@ namespace budget {
 
     void to_json(nlohmann::json& j, Account const& a);
     void from_json(nlohmann::json const& j, Account& a);
+
+    class BudgetMonth {
+    public:
+        struct Entry {
+            double allocated;
+            double activity;
+            double balance;
+        };
+
+        std::string url;
+        std::pair<int, int> month;
+        std::map<std::string, Entry> entries;
+    };
+
+    static_assert(std::is_default_constructible<BudgetMonth>::value);
+
+    void to_json(nlohmann::json& j, BudgetMonth const& m);
+    void from_json(nlohmann::json const& j, BudgetMonth& m);
 
 } // namespace budget
