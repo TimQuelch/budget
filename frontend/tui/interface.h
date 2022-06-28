@@ -31,6 +31,7 @@ namespace budget {
 
         void update_accounts();
         void update_budget_months();
+        void update_current_budget_view();
         void loop();
     };
 } // namespace budget

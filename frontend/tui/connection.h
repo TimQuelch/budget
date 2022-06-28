@@ -25,5 +25,6 @@ namespace budget {
     public:
         [[nodiscard]] std::vector<Account> const& accounts();
         [[nodiscard]] std::vector<std::pair<int, int>> budget_months();
+        [[nodiscard]] BudgetMonth const& budget(std::vector<BudgetMonth>::size_type i);
     };
 } // namespace budget

@@ -3,9 +3,10 @@
 #include "models.h"
 
 #include <algorithm>
-#include <cpr/cpr.h>
 #include <exception>
 #include <iterator>
+
+#include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -68,4 +69,11 @@ namespace budget {
                        [](auto const& bm) { return bm.month; });
         return ret;
     };
+
+    [[nodiscard]] BudgetMonth const& State::budget(std::vector<BudgetMonth>::size_type i) {
+        if (budget_.at(i).entries.empty()) {
+            refresh_object(budget_.at(i));
+        }
+        return budget_.at(i);
+    }
 } // namespace budget
