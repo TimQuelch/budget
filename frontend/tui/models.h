@@ -10,10 +10,8 @@ namespace budget {
 
     class Payee {
     public:
+        std::string url;
         std::string name;
-
-        Payee() noexcept = default;
-        explicit Payee(std::string name) : name{std::move(name)} {}
     };
 
     static_assert(std::is_default_constructible<Payee>::value);
