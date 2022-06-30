@@ -1,10 +1,10 @@
 #pragma once
 
+#include <compare>
 #include <map>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <compare>
 
 #include <nlohmann/json_fwd.hpp>
 
