@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <compare>
@@ -8,6 +9,12 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace budget {
+
+    class JsonParseError : std::runtime_error {
+    public:
+        explicit JsonParseError(std::string const& what);
+        explicit JsonParseError(char const* what);
+    };
 
     class Payee {
     public:
