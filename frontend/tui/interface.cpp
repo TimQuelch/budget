@@ -1,11 +1,35 @@
 #include "interface.h"
-#include "ftxui/dom/elements.hpp"
+
+#include <algorithm>
 
 #include <fmt/format.h>
+#include <ftxui/component/component_options.hpp>
+#include <ftxui/dom/elements.hpp>
 #include <ftxui/dom/table.hpp>
 #include <ftxui/screen/screen.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+
+namespace {
+    auto currency_element(double val) {
+        using namespace ftxui;
+        constexpr auto currency_width = 12;
+        auto t = text(fmt::format("{}{:.2f}", val >= 0 ? " $" : "-$", std::abs(val)));
+        return align_right(t) | size(WIDTH, EQUAL, currency_width);
+    }
+
+    auto balance_element(double val) {
+        using namespace ftxui;
+        auto el = currency_element(val);
+        if (val >= 0) {
+            el |= color(Color::Green);
+        }
+        if (val <= 0) {
+            el |= color(Color::Red);
+        }
+        return el;
+    }
+} // namespace
 
 namespace budget {
     Interface::Interface() {
@@ -31,13 +55,49 @@ namespace budget {
             return window(text("Months"), budget_month_menu_->Render() | vscroll_indicator | frame);
         });
 
-        auto const budget_renderer = Renderer([this] {
+        auto budget_entry_options = MenuOption::Vertical();
+
+        budget_entry_options.entries.transform = [this](EntryState const& s) {
+            auto const& budget = state_->budget(static_cast<std::size_t>(selected_month_index_));
+            // TODO Fix this. It is broken
+            auto const max_width = static_cast<int>(
+                std::max_element(budget.entries.cbegin(),
+                                 budget.entries.cend(),
+                                 [](auto const& a, auto const& b) {
+                                     return a.first.length() < b.first.length();
+                                 })
+                    ->first.length());
+            spdlog::debug("Calculating max width of budget categories as {}", max_width);
+            auto const vals = budget.entries.at(s.label);
+            Element e = hbox({text(s.label) | size(WIDTH, EQUAL, max_width + 2),
+                              currency_element(vals.allocated),
+                              currency_element(vals.activity),
+                              balance_element(vals.balance)});
+
+            if (s.focused) {
+                e |= inverted;
+            }
+            if (s.active) {
+                e |= bold;
+            }
+            if (!s.focused && !s.active) {
+                e |= dim;
+            }
+
+            return e;
+        };
+
+        budget_entry_menu_ =
+            Menu(&budget_entry_entries_, &selected_entry_index_, budget_entry_options);
+
+        auto const budget_renderer = Renderer(budget_entry_menu_, [this] {
             return window(text("Budget"),
-                          Table(viewed_budget_values_).Render() | vscroll_indicator | frame | flex);
+                          budget_entry_menu_->Render() | vscroll_indicator | frame | flex);
         });
 
         auto const budget_container = Container::Horizontal(
-            {budget_month_menu_renderer, budget_renderer});
+            {budget_month_menu_renderer, budget_renderer},
+            &budget_menu_global_index_);
 
         // Tabbed menu
         auto const tab_selection = Menu(&tab_entries_, &tab_index_, MenuOption::Horizontal());
@@ -72,18 +132,12 @@ namespace budget {
 
     void Interface::update_current_budget_view() {
         spdlog::info("Updating current budget view");
-        viewed_budget_values_.clear();
+        budget_entry_entries_.clear();
         auto const& budget = state_->budget(static_cast<std::size_t>(selected_month_index_));
         std::transform(budget.entries.cbegin(),
                        budget.entries.cend(),
-                       std::back_inserter(viewed_budget_values_),
-                       [](auto const& e) {
-                           return std::vector<std::string>{
-                               e.first,
-                               fmt::format("{:.2f}", e.second.allocated),
-                               fmt::format("{:.2f}", e.second.activity),
-                               fmt::format("{:.2f}", e.second.balance)};
-                       });
+                       std::back_inserter(budget_entry_entries_),
+                       [](auto const& e) { return e.first; });
     }
 
     void Interface::loop() {

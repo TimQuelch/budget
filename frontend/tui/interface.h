@@ -21,7 +21,10 @@ namespace budget {
         ftxui::Component budget_month_menu_;
         std::vector<std::string> budget_month_entries_;
         int selected_month_index_ = 0;
-        std::vector<std::vector<std::string>> viewed_budget_values_;
+        ftxui::Component budget_entry_menu_;
+        std::vector<std::string> budget_entry_entries_;
+        int selected_entry_index_ = 0;
+        int budget_menu_global_index_ = 0;
 
         ftxui::ScreenInteractive screen_ = ftxui::ScreenInteractive::Fullscreen();
         ftxui::Component main_container_;
