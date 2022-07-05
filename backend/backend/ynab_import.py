@@ -25,7 +25,7 @@ def create_accounts(d):
     # bulk_create does not work for child models
     for n in account_names:
         try:
-            models.Account(name=n, is_account=True).save()
+            models.Payee(name=n, acctype=models.AccType.BUDGET_ACCOUNT).save()
         except:
             print(n)
             raise
@@ -86,10 +86,17 @@ def remove_dupes():
             amount=vs["amount"], date=vs["date"], src_id=vs["src"], dst_id=vs["dst"]
         )
 
+        # Hopefully we don't have multiple transactions between the same accounts on the same day
+        # with the same amount. This is possible, but I don't have any for now so I'm ignoring the
+        # possibility
         assert len(pair) == 2
 
-        # Delete the 2nd transaction
-        pair[1].delete()
+        # For transfers to tracking accounts, one of the transactions has a category and the other
+        # one does not. We want to retain the transaction that has the category and delete the other
+        if pair[0].category is not None:
+            pair[1].delete()
+        else:
+            pair[0].delete()
 
     # Verify there are none remaining
     ndupes = len(
@@ -149,14 +156,11 @@ def import_csv(register_filename, budget_filename, clear_table=False):
         infer_datetime_format=True,
         converters={"Category": str},
     )
-    b.Budgeted = b.Budgeted.str.replace("$", "", regex=False).apply(
-        lambda x: float(x)
-    )
+    b.Budgeted = b.Budgeted.str.replace("$", "", regex=False).apply(lambda x: float(x))
 
     # Wrap all in transaction?
 
     if clear_table:
-        models.Account.objects.all().delete()
         models.Payee.objects.all().delete()
         models.Transaction.objects.all().delete()
         models.Category.objects.all().delete()

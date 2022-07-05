@@ -1,7 +1,10 @@
+from itertools import chain
 from datetime import date, timedelta
 import calendar
 
 from django.db import models
+
+from . import util
 
 
 def previous_month(d):
@@ -17,13 +20,52 @@ def next_month(d):
     return first_of_next_month
 
 
+class AccType(models.IntegerChoices):
+    PAYEE = 1
+    TRACKING_ACCOUNT = 2
+    BUDGET_ACCOUNT = 3
+
+
+class AccountManager(models.Manager):
+    def get_queryset(self):
+        return (
+            super().get_queryset().filter(acctype__gte=AccType.TRACKING_ACCOUNT.value)
+        )
+
+
+class AccTypeManager(models.Manager):
+    filterq = AccType.PAYEE
+
+    def __init__(self, filterq):
+        super().__init__()
+        self.filterq = filterq
+
+    def get_queryset(self):
+        return super().get_queryset().filter(acctype=self.filterq.value)
+
+
 class Payee(models.Model):
+
+    acctype = models.IntegerField(choices=AccType.choices, default=AccType.PAYEE)
     name = models.CharField(max_length=50, unique=True)
-    is_account = models.BooleanField(default=False, editable=False)
 
-    def __str__(self):
-        return str(self.name)
+    __original_acctype = None
 
+    @property
+    def is_account(self):
+        return (
+            self.acctype == AccType.TRACKING_ACCOUNT or type == AccType.BUDGET_ACCOUNT
+        )
+
+    @property
+    def is_budget_account(self):
+        return self.acctype == AccType.BUDGET_ACCOUNT
+
+    @property
+    def is_tracking_account(self):
+        return self.acctype == AccType.TRACKING_ACCOUNT
+
+    @property
     def balance(self, before=date.today()):
         def transaction_sum(qs):
             return sum(v["amount"] for v in qs.values("amount"))
@@ -33,14 +75,34 @@ class Payee(models.Model):
 
         return round(transaction_sum(incoming) - transaction_sum(outgoing), 2)
 
-
-class Account(Payee):
-    def clean(self):
-        super().clean()
-        self.is_account = True
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__original_acctype = self.acctype
 
     def __str__(self):
         return str(self.name)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.__original_acctype != self.acctype:
+            incoming_cat_pks = self.incoming_transactions.values_list(
+                "category", flat=True
+            ).distinct()
+            outgoing_cat_pks = self.outgoing_transactions.values_list(
+                "category", flat=True
+            ).distinct()
+            print(incoming_cat_pks)
+            print(outgoing_cat_pks)
+            cats = Category.objects.in_bulk(chain(incoming_cat_pks, outgoing_cat_pks))
+            for c in cats.values():
+                util.update_category_balances(c)
+
+    objects = models.Manager()
+    payees = AccTypeManager(AccType.PAYEE)
+    tracking_accounts = AccTypeManager(AccType.TRACKING_ACCOUNT)
+    budget_accounts = AccTypeManager(AccType.BUDGET_ACCOUNT)
+    accounts = AccountManager()
 
 
 class Category(models.Model):
@@ -51,8 +113,16 @@ class Category(models.Model):
 
 
 class TransferManager(models.Manager):
+    # Greater than Tracking Account value includes both tracking accounts and budget accounts
     def get_queryset(self):
-        return super().get_queryset().filter(src__is_account=True, dst__is_account=True)
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                src__acctype__gte=AccType.TRACKING_ACCOUNT.value,
+                dst__acctype__gte=AccType.TRACKING_ACCOUNT.value,
+            )
+        )
 
 
 class Transaction(models.Model):
@@ -85,12 +155,16 @@ class Transaction(models.Model):
         return self.src.is_account and self.dst.is_account
 
     @property
+    def is_internal_transfer(self):
+        return self.src.is_budget_account and self.dsts.is_budget_account
+
+    @property
     def is_outgoing(self):
-        return self.src.is_account and not self.dst.is_account
+        return self.src.is_budget_account and not self.dst.is_budget_account
 
     @property
     def is_incoming(self):
-        return not self.src.is_account and self.dst.is_account
+        return not self.src.is_budget_account and self.dst.is_budget_account
 
     def clean(self):
         # Remove category if it is a transfer
