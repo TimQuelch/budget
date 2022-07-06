@@ -7,6 +7,7 @@
 
 int main() {
     auto file_logger = spdlog::basic_logger_mt("log", "log.txt");
+    file_logger->flush_on(spdlog::level::err);
     spdlog::set_default_logger(file_logger);
     spdlog::set_level(spdlog::level::debug);
 
