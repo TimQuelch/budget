@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 
-from backend.models import Payee, BudgetMonth
+from backend.models import Payee, BudgetMonth, Transaction
 from . import serializers
 
 
@@ -23,3 +23,8 @@ class BudgetMonthViewSet(viewsets.ModelViewSet):
             return serializers.BudgetMonthSerializer
 
         return serializers.BudgetMonthDetailSerializer
+
+
+class TransactionViewSet(viewsets.ModelViewSet):
+    queryset = Transaction.objects.all()
+    serializer_class = serializers.TransactionSerializer
