@@ -140,7 +140,15 @@ def create_budget_entries(b):
     models.BudgetEntry.objects.bulk_create(map(create_entry, b.iterrows()))
 
 
-def import_csv(register_filename, budget_filename, clear_table=False):
+def set_tracking_accounts(acc_names):
+    tracking_accounts = models.Payee.accounts.filter(name__in=acc_names)
+    assert len(acc_names) == len(tracking_accounts)
+    tracking_accounts.update(acctype=models.AccType.TRACKING_ACCOUNT)
+
+
+def import_csv(
+    register_filename, budget_filename, clear_table=False, tracking_accounts=[]
+):
     r = pd.read_csv(
         register_filename,
         parse_dates=[2],
@@ -176,6 +184,8 @@ def import_csv(register_filename, budget_filename, clear_table=False):
 
     create_transactions(r)
     remove_dupes()
+
+    set_tracking_accounts(tracking_accounts)
 
     update_all_balances()
 
