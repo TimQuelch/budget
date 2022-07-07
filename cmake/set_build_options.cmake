@@ -8,7 +8,7 @@ else()
 endif()
 
 function(budget_set_build_options target)
-  target_compile_features(budget-tui PUBLIC cxx_std_20)
+  target_compile_features(${target} PUBLIC cxx_std_20)
   target_compile_options(${target} PRIVATE ${warnings})
 
   if(CLANG_TIDY_EXE)
