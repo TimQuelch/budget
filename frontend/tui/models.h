@@ -42,15 +42,33 @@ namespace budget {
             double balance;
         };
 
-        std::string url;
         std::pair<int, int> month;
+        std::string url;
         std::map<std::string, Entry> entries;
+
+        friend std::strong_ordering operator<=>(BudgetMonth const& a, BudgetMonth const& b);
     };
 
     static_assert(std::is_default_constructible<BudgetMonth>::value);
 
-    std::strong_ordering operator<=>(BudgetMonth const& a, BudgetMonth const& b);
     void to_json(nlohmann::json& j, BudgetMonth const& m);
     void from_json(nlohmann::json const& j, BudgetMonth& m);
 
+    class Transaction {
+    public:
+        std::tuple<int, int, int> date;
+        std::string url;
+        std::string src;
+        std::string dst;
+        std::string category;
+        std::string memo;
+        double amount;
+
+        friend auto operator<=>(Transaction const& a, Transaction const& b) = default;
+    };
+
+    static_assert(std::is_default_constructible<BudgetMonth>::value);
+
+    void to_json(nlohmann::json& j, Transaction const& m);
+    void from_json(nlohmann::json const& j, Transaction& m);
 } // namespace budget
