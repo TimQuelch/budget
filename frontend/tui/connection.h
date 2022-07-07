@@ -5,11 +5,20 @@
 #include <string_view>
 #include <vector>
 
+namespace cpr {
+    class Response;
+}
+
 namespace budget {
     class Account;
     class BudgetMonth;
 
     constexpr auto endpoint = std::string_view{"http://localhost:8000/api/"};
+
+    class HttpError : std::runtime_error {
+    public:
+        explicit HttpError(cpr::Response const& r);
+    };
 
     [[nodiscard]] std::vector<Account> get_all_accounts();
     [[nodiscard]] std::vector<BudgetMonth> get_budget_months();
