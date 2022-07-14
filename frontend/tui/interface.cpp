@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <ftxui/component/component_options.hpp>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/dom/table.hpp>
@@ -11,15 +12,14 @@
 #include <spdlog/spdlog.h>
 
 namespace {
+    using namespace ftxui;
     auto currency_element(double val) {
-        using namespace ftxui;
         constexpr auto currency_width = 12;
         auto t = text(fmt::format("{}{:.2f}", val >= 0 ? " $" : "-$", std::abs(val)));
         return align_right(t) | size(WIDTH, EQUAL, currency_width);
     }
 
     auto balance_element(double val) {
-        using namespace ftxui;
         auto el = currency_element(val);
         if (val >= 0) {
             el |= color(Color::Green);
@@ -29,6 +29,17 @@ namespace {
         }
         return el;
     }
+
+    auto transaction_component(budget::Transaction const& t) {
+        auto e = hbox({text(fmt::format("date {}", t.date)),
+                       text(fmt::format("src {}", t.src ? *t.src : "NONE")),
+                       text(fmt::format("dst {}", t.dst ? *t.dst : "NONE")),
+                       text(fmt::format("category {}", t.category ? *t.category : "NONE")),
+                       text(fmt::format("memo {}", t.memo ? *t.memo : "NONE")),
+                       text(fmt::format("amount {}", t.amount))});
+        return Renderer([e] { return e; });
+    }
+
 } // namespace
 
 namespace budget {
@@ -59,7 +70,6 @@ namespace budget {
 
         budget_entry_options.entries.transform = [this](EntryState const& s) {
             auto const& budget = state_->budget(static_cast<std::size_t>(selected_month_index_));
-            // TODO Fix this. It is broken
             auto const max_width = static_cast<int>(
                 std::max_element(budget.entries.cbegin(),
                                  budget.entries.cend(),
@@ -69,10 +79,10 @@ namespace budget {
                     ->first.length());
             spdlog::debug("Calculating max width of budget categories as {}", max_width);
             auto const vals = budget.entries.at(s.label);
-            Element e = hbox({text(s.label) | size(WIDTH, EQUAL, max_width + 2),
-                              currency_element(vals.allocated),
-                              currency_element(vals.activity),
-                              balance_element(vals.balance)});
+            auto e = hbox({text(s.label) | size(WIDTH, EQUAL, max_width + 2),
+                           currency_element(vals.allocated),
+                           currency_element(vals.activity),
+                           balance_element(vals.balance)});
 
             if (s.focused) {
                 e |= inverted;
@@ -99,9 +109,18 @@ namespace budget {
             {budget_month_menu_renderer, budget_renderer},
             &budget_menu_global_index_);
 
+        // Transaction ledger
+        ledger_container_ = Container::Vertical({});
+        update_ledger_view();
+
+        auto const ledger_renderer = Renderer(ledger_container_, [this] {
+            return window(text("Ledger"),
+                          ledger_container_->Render() | vscroll_indicator | frame | flex);
+        });
+
         // Tabbed menu
         auto const tab_selection = Menu(&tab_entries_, &tab_index_, MenuOption::Horizontal());
-        auto const tab_content = Container::Tab({budget_container, account_renderer}, &tab_index_);
+        auto const tab_content = Container::Tab({budget_container, account_renderer, ledger_renderer}, &tab_index_);
 
         main_container_ = Container::Vertical({tab_selection, tab_content});
     }
@@ -138,6 +157,15 @@ namespace budget {
                        budget.entries.cend(),
                        std::back_inserter(budget_entry_entries_),
                        [](auto const& e) { return e.first; });
+    }
+
+    void Interface::update_ledger_view() {
+        spdlog::info("Updating ledger view");
+        auto const& ts = state_->transactions();
+        ledger_container_->DetachAllChildren();
+        for (auto const& t : ts) {
+            ledger_container_->Add(transaction_component(t));
+        }
     }
 
     void Interface::loop() {
