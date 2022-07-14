@@ -146,7 +146,7 @@ namespace budget {
                        std::back_inserter(ret),
                        [](auto const& bm) { return bm.month; });
         return ret;
-    };
+    }
 
     [[nodiscard]] BudgetMonth const& State::budget(std::vector<BudgetMonth>::size_type i) {
         if (budget_.at(i).entries.empty()) {
