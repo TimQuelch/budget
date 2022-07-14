@@ -154,4 +154,8 @@ namespace budget {
         }
         return budget_.at(i);
     }
+
+    [[nodiscard]] std::vector<Transaction> const& State::transactions() {
+        return ledger_.transactions();
+    }
 } // namespace budget
