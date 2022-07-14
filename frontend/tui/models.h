@@ -3,6 +3,7 @@
 #include <compare>
 #include <map>
 #include <stdexcept>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -58,10 +59,10 @@ namespace budget {
     public:
         std::tuple<int, int, int> date;
         std::string url;
-        std::string src;
-        std::string dst;
-        std::string category;
-        std::string memo;
+        std::optional<std::string> src;
+        std::optional<std::string> dst;
+        std::optional<std::string> category;
+        std::optional<std::string> memo;
         double amount;
 
         friend auto operator<=>(Transaction const& a, Transaction const& b) = default;

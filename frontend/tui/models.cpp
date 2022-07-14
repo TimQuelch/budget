@@ -37,6 +37,14 @@ namespace {
         auto const day = std::string(daystart, str.end());
         return std::tuple{std::stoi(year), std::stoi(month), std::stoi(day)};
     }
+
+    std::optional<std::string> get_if_not_null(nlohmann::json const& j, std::string const& s) {
+        auto const& el = j.at(s);
+        if (el.is_null()) {
+            return {};
+        }
+        return std::string{el.get<std::string>()};
+    }
 } // namespace
 
 namespace budget {
@@ -95,10 +103,10 @@ namespace budget {
     void from_json(nlohmann::json const& j, Transaction& m) {
         try {
             j.at("url").get_to(m.url);
-            j.at("src").get_to(m.src);
-            j.at("dst").get_to(m.dst);
-            j.at("category").get_to(m.category);
-            j.at("memo").get_to(m.memo);
+            m.src = get_if_not_null(j, "src");
+            m.dst = get_if_not_null(j, "dst");
+            m.category = get_if_not_null(j, "category");
+            m.memo = get_if_not_null(j, "memo");
             j.at("amount").get_to(m.amount);
             m.date = string_to_ymd_tuple(j.at("date").get<std::string>());
         } catch (nlohmann::json::exception const& e) {
