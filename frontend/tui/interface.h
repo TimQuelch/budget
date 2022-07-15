@@ -1,6 +1,7 @@
 #pragma once
 
 #include "connection.h"
+#include "ftxui/component/component_base.hpp"
 #include "models.h"
 
 #include <ftxui/component/component.hpp>
@@ -10,6 +11,16 @@
 #include <vector>
 
 namespace budget {
+
+    // Simple wrapper class for bool. This is so that I can use std::vector<Bool> without the
+    // std::vector<bool> insane default bitpacking. In the default specialisation of
+    // std::vector<bool>, you can't take the address of individual elements, which e.g. is required
+    // when creating lists of checkbox values
+    struct Bool {
+    public:
+        bool val;
+        Bool(bool b) noexcept : val{b} {}
+    };
 
     class Interface {
     private:
@@ -28,9 +39,27 @@ namespace budget {
         int budget_menu_global_index_ = 0;
 
         ftxui::Component ledger_container_;
+        std::vector<Bool> transaction_selected_;
+
+        static constexpr auto default_date_width = 12;
+        static constexpr auto default_src_width = 12;
+        static constexpr auto default_dst_width = 12;
+        static constexpr auto default_category_width = 12;
+        static constexpr auto default_memo_width = 12;
+        static constexpr auto default_amount_width = 12;
+
+        int date_width_ = default_date_width;
+        int src_width_ = default_src_width;
+        int dst_width_ = default_dst_width;
+        int category_width_ = default_category_width;
+        int memo_width_ = default_memo_width;
+        int amount_width_ = default_amount_width;
 
         ftxui::ScreenInteractive screen_ = ftxui::ScreenInteractive::Fullscreen();
         ftxui::Component main_container_;
+
+        void update_ledger_widths();
+        ftxui::Component transaction_component(Transaction const& t, Bool* b) const;
 
     public:
         Interface();

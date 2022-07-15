@@ -1,4 +1,6 @@
 #include "interface.h"
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/component_base.hpp"
 
 #include <algorithm>
 
@@ -29,20 +31,54 @@ namespace {
         }
         return el;
     }
-
-    auto transaction_component(budget::Transaction const& t) {
-        auto e = hbox({text(fmt::format("date {}", t.date)),
-                       text(fmt::format("src {}", t.src ? *t.src : "NONE")),
-                       text(fmt::format("dst {}", t.dst ? *t.dst : "NONE")),
-                       text(fmt::format("category {}", t.category ? *t.category : "NONE")),
-                       text(fmt::format("memo {}", t.memo ? *t.memo : "NONE")),
-                       text(fmt::format("amount {}", t.amount))});
-        return Renderer([e] { return e; });
-    }
-
 } // namespace
 
 namespace budget {
+    ftxui::Component Interface::transaction_component(budget::Transaction const& t,
+                                                      budget::Bool* /* unused */) const {
+        auto e = hbox(
+            {text(fmt::format("{:02}/{:02}/{:04}",
+                              std::get<2>(t.date),
+                              std::get<1>(t.date),
+                              std::get<0>(t.date))) |
+                 size(WIDTH, EQUAL, date_width_),
+             text(fmt::format("{}", t.src ? *t.src : "NONE")) | size(WIDTH, EQUAL, src_width_),
+             text(fmt::format("{}", t.dst ? *t.dst : "NONE")) | size(WIDTH, EQUAL, dst_width_),
+             text(fmt::format("{}", t.category ? *t.category : "NONE")) |
+                 size(WIDTH, EQUAL, category_width_),
+             text(fmt::format("{}", t.memo ? *t.memo : "NONE")),
+             text(fmt::format("{}", t.amount)) | size(WIDTH, EQUAL, amount_width_)});
+
+        return Container::Horizontal({
+            Renderer([this, t](bool /*unused*/) {
+                return text(fmt::format("{:02}/{:02}/{:04}",
+                                        std::get<2>(t.date),
+                                        std::get<1>(t.date),
+                                        std::get<0>(t.date))) |
+                       size(WIDTH, EQUAL, date_width_);
+            }),
+            Renderer([this, t](bool /*unused*/) {
+                return text(fmt::format("{}", t.src ? *t.src : "NONE")) |
+                       size(WIDTH, EQUAL, src_width_);
+            }),
+            Renderer([this, t](bool /*unused*/) {
+                return text(fmt::format("{}", t.dst ? *t.dst : "NONE")) |
+                       size(WIDTH, EQUAL, dst_width_);
+            }),
+            Renderer([this, t](bool /*unused*/) {
+                return text(fmt::format("{}", t.category ? *t.category : "NONE")) |
+                       size(WIDTH, EQUAL, category_width_);
+            }),
+            Renderer([this, t](bool /*unused*/) {
+                return text(fmt::format("{}", t.memo ? *t.memo : "NONE")) |
+                       size(WIDTH, GREATER_THAN, memo_width_) | xflex_grow;
+            }),
+            Renderer([this, t](bool /*unused*/) {
+                return text(fmt::format("{}", t.amount)) | size(WIDTH, EQUAL, amount_width_);
+            }),
+        });
+    }
+
     Interface::Interface() {
         using namespace ftxui;
 
@@ -120,7 +156,8 @@ namespace budget {
 
         // Tabbed menu
         auto const tab_selection = Menu(&tab_entries_, &tab_index_, MenuOption::Horizontal());
-        auto const tab_content = Container::Tab({budget_container, account_renderer, ledger_renderer}, &tab_index_);
+        auto const tab_content =
+            Container::Tab({budget_container, account_renderer, ledger_renderer}, &tab_index_);
 
         main_container_ = Container::Vertical({tab_selection, tab_content});
     }
@@ -163,8 +200,9 @@ namespace budget {
         spdlog::info("Updating ledger view");
         auto const& ts = state_->transactions();
         ledger_container_->DetachAllChildren();
-        for (auto const& t : ts) {
-            ledger_container_->Add(transaction_component(t));
+        transaction_selected_.resize(ts.size(), false);
+        for (auto i = 0u; i < transaction_selected_.size(); i++) {
+            ledger_container_->Add(transaction_component(ts[i], &transaction_selected_[i]));
         }
     }
 

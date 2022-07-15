@@ -8,7 +8,8 @@ modernize-*,
 performance-*,
 readability-*,
 -modernize-use-trailing-return-type,
--readability-identifier-length
+-readability-identifier-length,
+-readability-uppercase-literal-suffix
 '
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
